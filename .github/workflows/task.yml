@@ -1,0 +1,170 @@
+# Coldline - Task 4.5
+# File: .github/workflows/task.yml
+# Component: Published Task CI
+# Purpose: Run the student-visible verification contract on pull requests.
+# Interacts With: uv, Poe, Docker Compose, the pinned scanners, tests/security/runtime_logs.py
+# Sprint/Task: Sprint 4 - Project 4 / Task 4.5
+# Concepts: Deterministic assessment, a secret read per use, a security gate proven on seeds, logs that never carry a key
+# Tools: GitHub Actions
+
+name: Task 4.5 verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # This is the STUDENT contract: on a fresh opening checkpoint it is supposed to fail, and a
+    # student makes it pass. Export PRs regenerate the whole template, so running it there only
+    # produced permanent red that masked real regressions. template-integrity.yml covers those
+    # branches instead.
+    if: >-
+      !startsWith(github.head_ref, 'export/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      # The pull request's own head commit with the full history: `poe verify`'s boundary
+      # and fix checks diff against the merge base with main, and that merge base must be
+      # the one the student's branch has, not the synthetic merge commit's.
+      - name: Check out the pull request head
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        # actions/setup-python v6.0.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: "3.12"
+      - name: Install pinned tooling
+        run: |
+          python infra/scripts/bootstrap.py
+          python infra/scripts/preflight.py
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
+          .tools/bin/uv sync --frozen
+      # Task 4.5's answer-format check is static: it reads submission.yaml against the
+      # published schema (a triage map keyed by finding id, and the two finding ids) and
+      # needs no running stack, so it runs first and fails fast. It judges none of the
+      # values; the protected answer check does that on the platform. `poe verify` below
+      # repeats it and adds the permitted-path boundary (hence fetch-depth: 0 above), the
+      # SecretProvider read and the replacement in place, the gate's thresholds, the scan
+      # on the clean tree and on a copy with each seed applied, the suppression entry, the
+      # fix file, and the inherited Task 2, 3 and 4 controls, alongside the inherited
+      # checks over the supplied checkpoint.
+      - name: Check the answer sheet's format
+        run: .tools/bin/uv run --frozen poe answers
+      # The three scanner images by digest and the pinned vulnerability database, into the
+      # ignored cache, so the scans inside `poe verify` run offline.
+      - name: Prepare the pinned scanners
+        run: .tools/bin/uv run --frozen poe security-setup
+      # Registry pulls are the one network-dependent part of startup, so they are retried
+      # with backoff here; `poe start` below then finds every image already present.
+      - name: Pull and build the pinned images
+        run: |
+          compose="docker compose --profile observability --profile localstack"
+          for attempt in 1 2 3 4; do
+            if $compose pull --quiet --ignore-buildable && $compose build; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 4 ]; then
+              echo "::warning::image pull or build attempt $attempt failed; retrying in $((attempt * 15))s"
+              sleep $((attempt * 15))
+            fi
+          done
+          echo "::error::image pull or build failed after 4 attempts"
+          exit 1
+      - name: Start the pinned runtime
+        run: .tools/bin/uv run --frozen poe start
+      - name: Ingest the supplied corpus
+        run: .tools/bin/uv run --frozen poe ingest
+      - name: Verify the public contract
+        run: .tools/bin/uv run --frozen poe verify
+      # On failure or cancellation (a `timeout-minutes` stop included), and before `poe reset`
+      # removes the containers: every service's logs, the initializer's included, so a
+      # startup failure leaves its reason behind. The logs are never printed raw. The
+      # supplied renderer (`poe runtime-logs`, tests/security/runtime_logs.py) reads every
+      # version of the provider key the store holds and replaces each value with
+      # `[provider-key version <id>]` before printing a group per service (the initializer,
+      # API and worker their last 2000 lines, every other service its last 200); when the
+      # versions cannot be read it prints a diagnostic and withholds the logs, because a log
+      # that could carry a key value is not evidence this job may publish. When no container
+      # exists, or the tooling was never installed, the step says so instead.
+      - name: Show the runtime logs on failure
+        if: failure() || cancelled()
+        run: |
+          if [ ! -x .tools/bin/uv ]; then
+            echo "The pinned tooling was not installed; no runtime logs to show."
+            exit 0
+          fi
+          .tools/bin/uv run --frozen poe runtime-logs || true
+      - name: Stop the runtime
+        if: always()
+        run: .tools/bin/uv run --frozen poe reset
+
+  # Task 3.5's own settled reliability gate, carried forward through the Project 4
+  # checkpoints: its one step runs `poe queue-contract`, Task 3.3's automated check for the
+  # deployed dead-letter redrive budget. Task 4.5 changes one thing in it: the failure
+  # handler prints the runtime logs through the redacting renderer above, never raw, because
+  # this job runs the same worker. This job is supplied in Task 4.5, not assessed here, and
+  # .github/workflows/task.yml is not student-editable: keep this whole file exactly as
+  # supplied.
+  reliability-gate:
+    if: >-
+      !startsWith(github.head_ref, 'export/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        # actions/setup-python v6.0.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: "3.12"
+      - name: Install pinned tooling
+        run: |
+          python infra/scripts/bootstrap.py
+          python infra/scripts/preflight.py
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
+          .tools/bin/uv sync --frozen
+      # Registry pulls are the one network-dependent part of startup, so they are retried
+      # with backoff here; `poe start` below then finds every image already present.
+      - name: Pull and build the pinned images
+        run: |
+          compose="docker compose --profile observability --profile localstack"
+          for attempt in 1 2 3 4; do
+            if $compose pull --quiet --ignore-buildable && $compose build; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 4 ]; then
+              echo "::warning::image pull or build attempt $attempt failed; retrying in $((attempt * 15))s"
+              sleep $((attempt * 15))
+            fi
+          done
+          echo "::error::image pull or build failed after 4 attempts"
+          exit 1
+      - name: Start the pinned runtime
+        run: .tools/bin/uv run --frozen poe start
+      - name: Run the reliability check
+        run: .tools/bin/uv run --frozen poe queue-contract
+      # On failure or cancellation, and before `poe reset` removes the containers: the
+      # runtime logs through the same redacting renderer as the verify job, never raw.
+      - name: Show the runtime logs on failure
+        if: failure() || cancelled()
+        run: |
+          if [ ! -x .tools/bin/uv ]; then
+            echo "The pinned tooling was not installed; no runtime logs to show."
+            exit 0
+          fi
+          .tools/bin/uv run --frozen poe runtime-logs || true
+      - name: Stop the runtime
+        if: always()
+        run: .tools/bin/uv run --frozen poe reset

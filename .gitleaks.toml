@@ -1,0 +1,29 @@
+# Coldline - Task 4.5
+# File: .gitleaks.toml
+# Component: Secret-scanner configuration
+# Purpose: Extend Gitleaks' default rules with the one key format this repository's provider uses, and hold the repository's reviewed suppressions.
+# Interacts With: poe security-scan, poe seed-secret, .github/workflows/security.yml, docs/security/gate-policy.md
+# Sprint/Task: Sprint 4 - Project 4 / Task 4.5
+# Concepts: Default rules plus a local format, suppressions scoped to one rule and one path, with a written reason
+# Tools: Gitleaks
+
+# This file is yours in Task 4.5: it is one of the permitted files. Keep the default rules
+# and the supplied rule below as they are; what you add is one allowlist entry, as
+# docs/security/gate-policy.md describes (one rule, one path, a comment with the finding
+# id, the reason the match is safe, and the date you decided).
+
+title = "Coldline secret-scanner configuration"
+
+[extend]
+useDefault = true
+
+# The Coldline model provider issues keys in one format: the prefix `cpk_` followed by 32
+# letters and digits. The default rules know many vendors' key formats and not this one,
+# so the format is declared here, as a team declares the formats of the credentials it
+# actually holds. `poe seed-secret` writes a key of this format for the Step 4
+# demonstration branch.
+[[rules]]
+id = "coldline-provider-key"
+description = "Coldline model-provider key"
+regex = '''\bcpk_[A-Za-z0-9]{32}\b'''
+keywords = ["cpk_"]

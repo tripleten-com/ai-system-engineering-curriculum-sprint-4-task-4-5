@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Coldline Task 4.5 public answer contract. Three answers about the findings `poe security-scan` reports on the starting checkpoint: a triage map from each finding id to one of the three triage values docs/security/gate-policy.md defines, the id of the finding fixed in the file it names, and the id of the finding suppressed with the one allowlist entry in .gitleaks.toml. The public check validates this shape, that every id has the scan's `F-nn` form, that the two named ids are keys of the map, and that the sheet is not a copy of the sample; the protected answer check compares the triage map and the fixed finding after the submission on the platform, and the public checks compare the suppressed finding with the allowlist entry. There is no self-attestation field, no pass boolean, and no recording URL.",
+  "title": "Coldline Task 4.5 answers",
+  "description": "The triage of every starting-checkpoint finding, the fixed finding, and the suppressed finding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answers"],
+  "$defs": {
+    "finding_id": {
+      "description": "A finding id as `poe security-scan` prints it: `F-` and two digits (three after a recorded re-pin that widened the id).",
+      "type": "string",
+      "pattern": "^F-[0-9]{2,3}$"
+    }
+  },
+  "properties": {
+    "answers": {
+      "description": "The only top-level answer mapping accepted by the public verifier.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["triage", "fixed_finding", "suppressed_finding"],
+      "properties": {
+        "triage": {
+          "description": "One entry per finding id the scan reports on the starting checkpoint, mapped to its triage value.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^F-[0-9]{2,3}$"
+          },
+          "additionalProperties": {
+            "enum": ["valid", "false_positive", "accepted"]
+          }
+        },
+        "fixed_finding": {
+          "description": "The id of the finding fixed in the file it names; one of the triage map's keys.",
+          "$ref": "#/$defs/finding_id"
+        },
+        "suppressed_finding": {
+          "description": "The id of the finding suppressed with the one allowlist entry in .gitleaks.toml; one of the triage map's keys.",
+          "$ref": "#/$defs/finding_id"
+        }
+      }
+    }
+  }
+}

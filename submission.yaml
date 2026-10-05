@@ -1,0 +1,35 @@
+# Coldline - Task 4.5
+# File: submission.yaml
+# Component: Student answer sheet
+# Purpose: Record your triage of every finding the security scan reports on the starting checkpoint, the finding you fixed, and the finding you suppressed.
+# Interacts With: Submission schema, public verifier, protected answer check
+# Sprint/Task: Sprint 4 - Project 4 / Task 4.5
+# Concepts: Security gate, triage, deterministic assessment
+# Tools: YAML
+
+# Complete submission.yaml from the evidence sources named beside each answer.
+# Keep the supplied keys; replace the empty values using each field's stated values.
+# Empty values and placeholder text fail verification.
+# Use submission-sample.yaml for format only; do not copy its fictional values.
+# Do not include secrets, personal data, or local absolute paths.
+
+answers:
+  # Task 4.5 — Step 3: Set the gate thresholds and triage the inherited findings
+  # Source: `poe security-scan` on your working branch before your fix and your
+  # suppression (your Step 1 change adds or removes no finding, so that is the starting
+  # checkpoint's finding set). One entry per finding id the scan printed, whatever its
+  # severity, mapping the id to one of (use the exact strings, defined in
+  # docs/security/gate-policy.md):
+  # - valid: the weakness the rule describes is present; fix it
+  # - false_positive: the match is not what the rule is about; suppress it
+  # - accepted: the construct is what the rule describes and needs no change here
+  # For example (the ids and values are the shape only, not a reading of any scan):
+  #   triage:
+  #     F-00: accepted
+  triage: {}
+
+  # The id of the finding you triaged as valid and fixed in the file it names.
+  fixed_finding: ""
+
+  # The id of the finding you suppressed with the one allowlist entry in .gitleaks.toml.
+  suppressed_finding: ""

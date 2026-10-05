@@ -1,0 +1,36 @@
+# Coldline - Task 4.5
+# File: security/gate.yaml
+# Component: Security gate thresholds
+# Purpose: State, per scanner, the lowest unsuppressed finding that fails the security-gate job.
+# Interacts With: poe security-scan, .github/workflows/security.yml, docs/security/gate-policy.md
+# Sprint/Task: Sprint 4 - Project 4 / Task 4.5
+# Concepts: Report-only versus failing, one threshold per scanner, a gate the team can trust
+# Tools: YAML
+
+# This file is yours in Task 4.5: it is one of the permitted files. One threshold per
+# scanner. `poe security-scan` reads this file, marks every finding at or above its
+# threshold, and exits 1 when one is unsuppressed; the security-gate job fails on that exit
+# and on nothing else. The allowed values are listed beside each key; any other value is a
+# configuration error the scan reports before it runs. As supplied, every threshold is
+# `none`: the scanners report and the gate fails nothing. docs/security/gate-policy.md
+# says what the gate must fail.
+
+# Secret findings (Gitleaks). Allowed values:
+#   none  report only
+#   any   any unsuppressed secret finding fails the gate
+secrets: none
+
+# Dependency and image vulnerabilities (Trivy, over uv.lock: the dependency set of both
+# first-party images). The lowest severity that fails the gate; findings below it are
+# reported. Allowed values:
+#   none      report only
+#   high      high and critical fail
+#   critical  critical fails
+dependencies: none
+
+# Static-analysis findings (Semgrep, the supplied rules in security/semgrep-rules.yaml).
+# The lowest severity that fails the gate; findings below it are reported. Allowed values:
+#   none      report only
+#   high      high and critical fail
+#   critical  critical fails
+static_analysis: none
