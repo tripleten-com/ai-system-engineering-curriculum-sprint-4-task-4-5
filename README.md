@@ -45,7 +45,9 @@ images by digest (several hundred megabytes on the first run) and downloads the 
 vulnerability database into the Git-ignored `.tools/trivy-cache/`, under a directory named by
 the pinned digest and beside a marker that records it, so a re-pinned database is never
 mistaken for the old one. Every scan after it runs offline. `poe security-scan` runs the
-download itself when the database is missing.
+download itself when the database is missing. The first run can take ten minutes or more on a
+home connection; nothing before Step 3 needs the scanners, so you can start the stack and work
+on Steps 1 and 2 while it runs in a second terminal.
 
 | Service | Local URL | Purpose |
 |---|---|---|
