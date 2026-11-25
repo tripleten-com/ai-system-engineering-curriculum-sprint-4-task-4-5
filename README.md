@@ -15,13 +15,12 @@ gate must fail and defines the three triage values. You move the key behind `Sec
 replace it once and confirm the version, set the thresholds, triage the inherited findings, fix
 one and suppress one, and prove the gate on two seeded branches.
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tripleten-com/ai-system-engineering-curriculum-sprint-4-task-4-5/tree/main)
-
 ## Start the system
 
 Prerequisites are Python 3.12 and Docker with Compose v2. The supplied bootstrap supports macOS
 arm64/x86-64, Windows x86-64, and Linux x86-64/aarch64, and installs pinned uv 0.11.8 under
-`.tools/bin`. If your computer cannot run the stack locally, use the Codespaces button above.
+`.tools/bin`. If your computer cannot run the stack locally, ask your instructor about GitHub
+Codespaces.
 
 On macOS and most Linux distributions the interpreter is `python3`; substitute it wherever these
 commands say `python`.
